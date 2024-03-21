@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
     char *host, buf[MAXLINE];
     char filename[MAX_NAME_LEN];
     FILE *file;
+    ssize_t bytes_read;
 
     if (argc != 3) {
         fprintf(stderr, "usage: %s <host> <filename> \n", argv[0]);
@@ -26,17 +27,20 @@ int main(int argc, char **argv) {
 
     Rio_writen(clientfd, filename, MAX_NAME_LEN); // write to server
 
-
-
-    file = fopen(filename, "wb"); // Open or create a local file for writing in binary mode
-    if (file == NULL) {
-        fprintf(stderr, "Error opening local file %s\n", filename);
-        Close(clientfd);
-        exit(1);
-    }
-
-    ssize_t bytes_read;
     while ((bytes_read = Rio_readn(clientfd, buf, MAXLINE)) > 0) { // Read from server
+
+        if(strncmp(buf, "404", 3) == 0) {
+            fprintf(stderr, "Error opening file %s\n", filename);
+            Close(clientfd);
+            exit(1);
+        }
+
+        file = fopen(filename, "wb"); // Open or create a local file for writing in binary mode
+        if (file == NULL) {
+            fprintf(stderr, "Error opening local file %s\n", filename);
+            Close(clientfd);
+            exit(1);
+        }
         if (fwrite(buf, 1, bytes_read, file) != bytes_read) { // Write to local file
             fprintf(stderr, "Error writing to local file %s\n", filename);
             fclose(file);
