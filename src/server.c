@@ -20,22 +20,23 @@ void sigint_handler(int sig) {
 void send_file(int connfd, char *filename) {
     char buf[MAXLINE];
     FILE *file;
-    char *message;
+//    char *message;
 
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        message = "Error, couldn't get the file you are demanding \n";
-        Rio_writen(connfd, message, strlen(message));
+//        message = "Error, couldn't get the file you are demanding \n";
+//        Rio_writen(connfd, message, strlen(message));
         return;
     }
 
     printf("Sending content of %s\n", filename);
-    message = "Loading file \n";
-    Rio_writen(connfd, message, strlen(message));
+//    message = "Loading file \n";
+//    Rio_writen(connfd, message, strlen(message));
 
-    while (Fgets(buf, MAXLINE, file) != NULL) {
-        Rio_writen(connfd, buf, strlen(buf));
+    ssize_t bytes_read;
+    while ((bytes_read = Fread(buf, 1, MAXLINE, file)) > 0) {
+        Rio_writen(connfd, buf, bytes_read);
     }
 
     fclose(file);
