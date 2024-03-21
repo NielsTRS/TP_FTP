@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    while ((bytes_read = Rio_readn(clientfd, buf, MAXLINE)) > 0) { // Read from server
+    if ((bytes_read = Rio_readn(clientfd, buf, MAXLINE)) > 0) { // Read from server
         file = fopen(filename, "wb"); // Open or create a local file for writing in binary mode
         if (file == NULL) {
             fprintf(stderr, "Error opening local file %s\n", filename);
