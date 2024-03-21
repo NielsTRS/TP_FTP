@@ -35,7 +35,7 @@ void send_file(int connfd, char *filename) {
     Rio_writen(connfd, error_code, strlen(error_code));
 
     ssize_t bytes_read;
-    while ((bytes_read = Fread(buf, 1, MAXLINE, file)) > 0) {
+    if ((bytes_read = Fread(buf, 1, MAXLINE, file)) > 0) {
         Rio_writen(connfd, buf, bytes_read);
     }
 
