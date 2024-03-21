@@ -3,9 +3,14 @@
 
 #include "csapp.h"
 
+#define BLOCK_SIZE 8196 // faster than 1024
+#define MAX_MESSAGE_LEN 256
+#define MAX_NAME_LEN 256
+#define PORT 2121
+
 typedef struct {
     int status;
-    char message[MAXLINE];
+    char message[MAX_MESSAGE_LEN];
 } Protocol;
 
 #endif /* PROTOCOL_H */

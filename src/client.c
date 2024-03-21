@@ -5,15 +5,11 @@
 #include "csapp.h"
 #include "protocol.h"
 
-#define MAX_NAME_LEN 256
-#define PORT 2121
-
 int main(int argc, char **argv) {
     int clientfd;
-    char *host, buf[MAXLINE];
-    char filename[MAX_NAME_LEN];
+    char *host, buf[BLOCK_SIZE], filename[MAX_NAME_LEN];
     FILE *file;
-    ssize_t bytes_read;
+    ssize_t bytes_read, total_bytes_read = 0;
     Protocol protocol;
     clock_t start, end;
     float total_time;
@@ -22,8 +18,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: %s <host> <filename> \n", argv[0]);
         exit(0);
     }
+
     host = argv[1];
-    strncpy(filename, argv[2], strlen(argv[2]) + 1);
+    strncpy(filename, argv[2], strlen(argv[2]) + 1); // Copy filename to buffer
 
     clientfd = Open_clientfd(host, PORT);
 
@@ -41,34 +38,34 @@ int main(int argc, char **argv) {
         }
     }
 
+    file = Fopen(filename, "wb"); // Open or create a local file for writing in binary mode
+    if (file == NULL) {
+        fprintf(stderr, "Error opening local file %s\n", filename);
+        Close(clientfd);
+        exit(1);
+    }
+
     start = clock();
-    bytes_read = Rio_readn(clientfd, buf, MAXLINE);
-    end = clock();
 
-    if (bytes_read > 0) { // Get file from server
-        file = Fopen(filename, "wb"); // Open or create a local file for writing in binary mode
-        if (file == NULL) {
-            fprintf(stderr, "Error opening local file %s\n", filename);
-            Close(clientfd);
-            exit(1);
-        }
-
+    while ((bytes_read = Rio_readn(clientfd, buf, BLOCK_SIZE)) > 0) {
+        total_bytes_read += bytes_read;
         if (fwrite(buf, 1, bytes_read, file) != bytes_read) {
             fprintf(stderr, "Error writing to local file %s\n", filename);
             Fclose(file);
             Close(clientfd);
             exit(1);
         }
-
-        total_time = (end - start) * 1e-6;
-
-        printf("File %s received and saved\n", filename);
-        printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", bytes_read, total_time,
-               (bytes_read / total_time) / 1024);
-        Fclose(file);
-    } else {
-        fprintf(stderr, "Error reading file from server\n");
     }
+
+    end = clock();
+
+    total_time = (end - start) * 1e-6;
+
+    printf("File %s received and saved\n", filename);
+    printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", total_bytes_read, total_time,
+           (total_bytes_read / total_time) / 1024);
+    Fclose(file);
+
 
     Close(clientfd);
     exit(0);

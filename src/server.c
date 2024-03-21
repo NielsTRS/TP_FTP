@@ -5,9 +5,7 @@
 #include "csapp.h"
 #include "protocol.h"
 
-#define MAX_NAME_LEN 256
 #define NB_PROC 3
-#define PORT 2121
 
 pid_t pids[NB_PROC];
 
@@ -19,7 +17,7 @@ void sigint_handler(int sig) {
 }
 
 void send_file(int connfd, char *filename) {
-    char buf[MAXLINE];
+    char buf[BLOCK_SIZE];
     FILE *file;
     Protocol protocol;
     ssize_t bytes_read;
@@ -38,7 +36,7 @@ void send_file(int connfd, char *filename) {
     strcpy(protocol.message, "File found");
     Rio_writen(connfd, &protocol, sizeof(protocol));
 
-    if ((bytes_read = Fread(buf, 1, MAXLINE, file)) > 0) {
+    while ((bytes_read = Fread(buf, 1, BLOCK_SIZE, file)) > 0) {
         Rio_writen(connfd, buf, bytes_read);
     }
 
