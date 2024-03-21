@@ -3,6 +3,7 @@
  */
 
 #include "csapp.h"
+#include "protocol.h"
 
 #define MAX_NAME_LEN 256
 #define NB_PROC 3
@@ -20,26 +21,28 @@ void sigint_handler(int sig) {
 void send_file(int connfd, char *filename) {
     char buf[MAXLINE];
     FILE *file;
-    char *error_code;
+    Protocol protocol;
+    ssize_t bytes_read;
 
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        error_code = "404\r";
-        Rio_writen(connfd, error_code, strlen(error_code));
+        protocol.status = 404;
+        strcpy(protocol.message, "File not found");
+        Rio_writen(connfd, &protocol, sizeof(protocol));
         return;
     }
 
     printf("Sending content of %s\n", filename);
-    error_code = "200\r";
-    Rio_writen(connfd, error_code, strlen(error_code));
+    protocol.status = 200;
+    strcpy(protocol.message, "File found");
+    Rio_writen(connfd, &protocol, sizeof(protocol));
 
-    ssize_t bytes_read;
     if ((bytes_read = Fread(buf, 1, MAXLINE, file)) > 0) {
         Rio_writen(connfd, buf, bytes_read);
     }
 
-    fclose(file);
+    Fclose(file);
 }
 
 void get_filename(int connfd, char *filename) {

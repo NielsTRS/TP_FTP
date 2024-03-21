@@ -3,6 +3,7 @@
  */
 
 #include "csapp.h"
+#include "protocol.h"
 
 #define MAX_NAME_LEN 256
 #define PORT 2121
@@ -11,9 +12,11 @@ int main(int argc, char **argv) {
     int clientfd;
     char *host, buf[MAXLINE];
     char filename[MAX_NAME_LEN];
-    char error_code[4];
     FILE *file;
     ssize_t bytes_read;
+    Protocol protocol;
+    clock_t start, end;
+    float total_time;
 
     if (argc != 3) {
         fprintf(stderr, "usage: %s <host> <filename> \n", argv[0]);
@@ -28,35 +31,43 @@ int main(int argc, char **argv) {
 
     Rio_writen(clientfd, filename, MAX_NAME_LEN); // write to server
 
-    bytes_read = Rio_readn(clientfd, error_code, 4); // Read error code
-    if (bytes_read > 0) {
-        error_code[3] = '\0';
-        if (strcmp(error_code, "404") == 0) {
-            printf("Received error code from server: File not found\n");
+    if (Rio_readn(clientfd, &protocol, sizeof(protocol)) > 0) { // Get response from server
+        if (protocol.status == 404) {
+            printf("%s\n", protocol.message);
             Close(clientfd);
             exit(0);
-        } else if (strcmp(error_code, "200") == 0) {
-            printf("File found, starting to receive file content\n");
-        } else {
-            printf("Received unknown error code from server: %s\n", error_code);
-            Close(clientfd);
-            exit(0);
+        } else if (protocol.status == 200) {
+            printf("%s\n", protocol.message);
         }
     }
 
-    if ((bytes_read = Rio_readn(clientfd, buf, MAXLINE)) > 0) { // Read from server
-        file = fopen(filename, "wb"); // Open or create a local file for writing in binary mode
+    start = clock();
+    bytes_read = Rio_readn(clientfd, buf, MAXLINE);
+    end = clock();
+
+    if (bytes_read > 0) { // Get file from server
+        file = Fopen(filename, "wb"); // Open or create a local file for writing in binary mode
         if (file == NULL) {
             fprintf(stderr, "Error opening local file %s\n", filename);
             Close(clientfd);
             exit(1);
         }
-        if (fwrite(buf, 1, bytes_read, file) != bytes_read) { // Write to local file
+
+        if (fwrite(buf, 1, bytes_read, file) != bytes_read) {
             fprintf(stderr, "Error writing to local file %s\n", filename);
-            fclose(file);
+            Fclose(file);
             Close(clientfd);
             exit(1);
         }
+
+        total_time = (end - start) * 1e-6;
+
+        printf("File %s received and saved\n", filename);
+        printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", bytes_read, total_time,
+               (bytes_read / total_time) / 1024);
+        Fclose(file);
+    } else {
+        fprintf(stderr, "Error reading file from server\n");
     }
 
     Close(clientfd);
