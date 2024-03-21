@@ -1,11 +1,11 @@
 /*
- * echoservercp.c - An concurrent echo server with pool of processes
+ * server.c - A concurrent server with pool of processes
  */
 
 #include "csapp.h"
 
 #define MAX_NAME_LEN 256
-#define NPROC 1
+#define NB_PROC 3
 #define PORT 2121
 
 pid_t pids[NPROC];
