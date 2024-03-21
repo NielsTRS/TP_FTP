@@ -25,14 +25,14 @@ void send_file(int connfd, char *filename) {
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        protocol.status = 404;
+        protocol.status = htonl(404);
         strcpy(protocol.message, "File not found");
         Rio_writen(connfd, &protocol, sizeof(protocol));
         return;
     }
 
     printf("Sending content of %s\n", filename);
-    protocol.status = 200;
+    protocol.status = htonl(200);
     strcpy(protocol.message, "File found");
     Rio_writen(connfd, &protocol, sizeof(protocol));
 
