@@ -18,16 +18,32 @@ void sigint_handler(int sig) {
 }
 
 
-void echo(int connfd)
-{
-    size_t n;
+void send_file(int connfd, char *filename) {
     char buf[MAXLINE];
     rio_t rio;
+    FILE *file;
 
+    file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        return;
+    }
+
+    printf("Sending content of %s\n", filename);
+
+    Rio_readinitb(&rio, fileno(file));
+    while (Fgets(buf, MAXLINE, file) != NULL) {
+        Rio_writen(connfd, buf, strlen(buf));
+    }
+
+    fclose(file);
+}
+
+void get_filename(int connfd, char *filename) {
+    rio_t rio;
     Rio_readinitb(&rio, connfd);
-    while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-        printf("server received %u bytes\n", (unsigned int)n);
-        Rio_writen(connfd, buf, n);
+    if (Rio_readlineb(&rio, filename, MAX_NAME_LEN) != 0) {
+        filename[strlen(filename)-1] = '\0';
     }
 }
 
@@ -42,7 +58,9 @@ int main(int argc, char **argv) {
     char client_ip_string[INET_ADDRSTRLEN];
     char client_hostname[MAX_NAME_LEN];
     clientlen = (socklen_t)
-    sizeof(clientaddr);
+            sizeof(clientaddr);
+
+    char filename[MAX_NAME_LEN];
 
     Signal(SIGINT, sigint_handler);
 
@@ -67,7 +85,9 @@ int main(int argc, char **argv) {
                 printf("server connected to %s (%s) using process %d\n", client_hostname,
                        client_ip_string, getpid());
 
-                echo(connfd);
+                get_filename(connfd, filename);
+                send_file(connfd, filename);
+
                 Close(connfd);
             }
         }

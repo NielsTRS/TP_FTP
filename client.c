@@ -3,20 +3,21 @@
  */
 
 #include "csapp.h"
-
+#define MAX_NAME_LEN 256
 #define PORT 2121
 
 int main(int argc, char **argv) {
     int clientfd;
     char *host, buf[MAXLINE];
     rio_t rio;
+    char *filename;
 
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s <host>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "usage: %s <host> <filename> \n", argv[0]);
         exit(0);
     }
     host = argv[1];
-
+    filename = argv[2];
     /*
      * Note that the 'host' can be a name or an IP address.
      * If necessary, Open_clientfd will perform the name resolution
@@ -33,14 +34,13 @@ int main(int argc, char **argv) {
 
     Rio_readinitb(&rio, clientfd);
 
-    while (Fgets(buf, MAXLINE, stdin) != NULL) { // read from stdin
-        Rio_writen(clientfd, buf, strlen(buf)); // write to server
-        if (Rio_readlineb(&rio, buf, MAXLINE) > 0) { // read from server
-            Fputs(buf, stdout); // write to stdout
-        } else { /* the server has prematurely closed the connection */
-            break;
-        }
+    Rio_writen(clientfd, filename, strlen(filename)); // write to server
+    Rio_writen(clientfd, "\n", 1); // write to server
+
+    while (Rio_readlineb(&rio, buf, MAXLINE) > 0) { // read from server
+        Fputs(buf, stdout); // write to stdout
     }
+
     Close(clientfd);
     exit(0);
 }
