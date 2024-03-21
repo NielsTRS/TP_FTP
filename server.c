@@ -6,6 +6,7 @@
 
 #define MAX_NAME_LEN 256
 #define NPROC 1
+#define PORT 2121
 
 pid_t pids[NPROC];
 
@@ -24,24 +25,17 @@ void echo(int connfd);
  * (IPv6 is not supported)
  */
 int main(int argc, char **argv) {
-    int listenfd, connfd, port;
+    int listenfd, connfd;
     socklen_t clientlen;
     struct sockaddr_in clientaddr;
     char client_ip_string[INET_ADDRSTRLEN];
     char client_hostname[MAX_NAME_LEN];
-
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);
-        exit(0);
-    }
-    port = atoi(argv[1]);
-
     clientlen = (socklen_t)
     sizeof(clientaddr);
 
     Signal(SIGINT, sigint_handler);
 
-    listenfd = Open_listenfd(port);
+    listenfd = Open_listenfd(PORT);
 
     printf("PID du veuilleur : %d\n", getpid());
 
