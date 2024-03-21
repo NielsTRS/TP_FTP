@@ -20,17 +20,19 @@ void sigint_handler(int sig) {
 void send_file(int connfd, char *filename) {
     char buf[MAXLINE];
     FILE *file;
-    char *error;
+    char *error_code;
 
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        error = "404";
-        Rio_writen(connfd, error, strlen(error));
+        error_code = "404\r";
+        Rio_writen(connfd, error_code, strlen(error_code));
         return;
     }
 
     printf("Sending content of %s\n", filename);
+    error_code = "200\r";
+    Rio_writen(connfd, error_code, strlen(error_code));
 
     ssize_t bytes_read;
     while ((bytes_read = Fread(buf, 1, MAXLINE, file)) > 0) {
