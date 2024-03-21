@@ -8,17 +8,28 @@
 #define NB_PROC 3
 #define PORT 2121
 
-pid_t pids[NPROC];
+pid_t pids[NB_PROC];
 
 void sigint_handler(int sig) {
-    for (int i = 0; i < NPROC; i++) {
+    for (int i = 0; i < NB_PROC; i++) {
         Kill(pids[i], SIGINT);
     }
     exit(0);
 }
 
 
-void echo(int connfd);
+void echo(int connfd)
+{
+    size_t n;
+    char buf[MAXLINE];
+    rio_t rio;
+
+    Rio_readinitb(&rio, connfd);
+    while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
+        printf("server received %u bytes\n", (unsigned int)n);
+        Rio_writen(connfd, buf, n);
+    }
+}
 
 /*
  * Note that this code only works with IPv4 addresses
@@ -39,7 +50,7 @@ int main(int argc, char **argv) {
 
     printf("PID du veuilleur : %d\n", getpid());
 
-    for (int i = 0; i < NPROC; i++) {
+    for (int i = 0; i < NB_PROC; i++) {
         if ((pids[i] = Fork()) == 0) { // Child process
             // le fils le plus rapide prendre en charge la connexion
             while (1) {
