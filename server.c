@@ -17,7 +17,6 @@ void sigint_handler(int sig) {
     exit(0);
 }
 
-
 void send_file(int connfd, char *filename) {
     char buf[MAXLINE];
     FILE *file;
@@ -26,13 +25,13 @@ void send_file(int connfd, char *filename) {
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        message = "Erreur récupération du fichier côté serveur \n";
+        message = "Error, couldn't get the file you are demanding \n";
         Rio_writen(connfd, message, strlen(message));
         return;
     }
 
     printf("Sending content of %s\n", filename);
-    message = "Reception du fichier\n";
+    message = "Loading file \n";
     Rio_writen(connfd, message, strlen(message));
 
     while (Fgets(buf, MAXLINE, file) != NULL) {
@@ -43,17 +42,11 @@ void send_file(int connfd, char *filename) {
 }
 
 void get_filename(int connfd, char *filename) {
-    rio_t rio;
-    Rio_readinitb(&rio, connfd);
-    if (Rio_readlineb(&rio, filename, MAX_NAME_LEN) != 0) {
-        filename[strlen(filename) - 1] = '\0';
+    if (Rio_readn(connfd, filename, MAX_NAME_LEN) != 0) {
+        printf("Received request for : %s\n", filename);
     }
 }
 
-/*
- * Note that this code only works with IPv4 addresses
- * (IPv6 is not supported)
- */
 int main(int argc, char **argv) {
     int listenfd, connfd;
     socklen_t clientlen;
@@ -69,19 +62,16 @@ int main(int argc, char **argv) {
 
     listenfd = Open_listenfd(PORT);
 
-    printf("PID du veuilleur : %d\n", getpid());
+    printf("Main server PID : %d\n", getpid());
 
     for (int i = 0; i < NB_PROC; i++) {
         if ((pids[i] = Fork()) == 0) { // Child process
-            // le fils le plus rapide prendre en charge la connexion
             while (1) {
                 connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
 
-                /* determine the name of the client */
                 Getnameinfo((SA *) &clientaddr, clientlen,
                             client_hostname, MAX_NAME_LEN, 0, 0, 0);
 
-                /* determine the textual representation of the client's IP address */
                 Inet_ntop(AF_INET, &clientaddr.sin_addr, client_ip_string,
                           INET_ADDRSTRLEN);
 
@@ -96,8 +86,6 @@ int main(int argc, char **argv) {
         }
     }
 
-
     while (1);
 
 }
-

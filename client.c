@@ -10,30 +10,20 @@
 int main(int argc, char **argv) {
     int clientfd;
     char *host, buf[MAXLINE];
-    char *filename;
+    char filename[MAX_NAME_LEN];
 
     if (argc != 3) {
         fprintf(stderr, "usage: %s <host> <filename> \n", argv[0]);
         exit(0);
     }
     host = argv[1];
-    filename = argv[2];
-    /*
-     * Note that the 'host' can be a name or an IP address.
-     * If necessary, Open_clientfd will perform the name resolution
-     * to obtain the IP address.
-     */
+    strncpy(filename, argv[2], strlen(argv[2]) + 1);
+
     clientfd = Open_clientfd(host, PORT);
 
-    /*
-     * At this stage, the connection is established between the client
-     * and the server OS ... but it is possible that the server application
-     * has not yet called "Accept" for this connection
-     */
     printf("client connected to server OS\n");
 
-    Rio_writen(clientfd, filename, strlen(filename)); // write to server
-    Rio_writen(clientfd, "\n", 1); // write to server
+    Rio_writen(clientfd, filename, MAX_NAME_LEN); // write to server
 
     while (Rio_readn(clientfd, buf, MAXLINE) > 0) { // read from server
         Fputs(buf, stdout); // write to stdout
