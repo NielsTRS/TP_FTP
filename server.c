@@ -20,18 +20,21 @@ void sigint_handler(int sig) {
 
 void send_file(int connfd, char *filename) {
     char buf[MAXLINE];
-    rio_t rio;
     FILE *file;
+    char *message;
 
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
+        message = "Erreur récupération du fichier côté serveur \n";
+        Rio_writen(connfd, message, strlen(message));
         return;
     }
 
     printf("Sending content of %s\n", filename);
+    message = "Reception du fichier\n";
+    Rio_writen(connfd, message, strlen(message));
 
-    Rio_readinitb(&rio, fileno(file));
     while (Fgets(buf, MAXLINE, file) != NULL) {
         Rio_writen(connfd, buf, strlen(buf));
     }
@@ -43,7 +46,7 @@ void get_filename(int connfd, char *filename) {
     rio_t rio;
     Rio_readinitb(&rio, connfd);
     if (Rio_readlineb(&rio, filename, MAX_NAME_LEN) != 0) {
-        filename[strlen(filename)-1] = '\0';
+        filename[strlen(filename) - 1] = '\0';
     }
 }
 

@@ -3,13 +3,13 @@
  */
 
 #include "csapp.h"
+
 #define MAX_NAME_LEN 256
 #define PORT 2121
 
 int main(int argc, char **argv) {
     int clientfd;
     char *host, buf[MAXLINE];
-    rio_t rio;
     char *filename;
 
     if (argc != 3) {
@@ -32,12 +32,10 @@ int main(int argc, char **argv) {
      */
     printf("client connected to server OS\n");
 
-    Rio_readinitb(&rio, clientfd);
-
     Rio_writen(clientfd, filename, strlen(filename)); // write to server
     Rio_writen(clientfd, "\n", 1); // write to server
 
-    while (Rio_readlineb(&rio, buf, MAXLINE) > 0) { // read from server
+    while (Rio_readn(clientfd, buf, MAXLINE) > 0) { // read from server
         Fputs(buf, stdout); // write to stdout
     }
 
