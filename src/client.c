@@ -7,7 +7,7 @@
 
 int main(int argc, char **argv) {
     int clientfd;
-    char *host, buf[BLOCK_SIZE], filename[MAX_NAME_LEN];
+    char *host, file_buf[BLOCK_SIZE], filename[MAX_NAME_LEN];
     FILE *file;
     ssize_t bytes_read, total_bytes_read = 0;
     Protocol protocol;
@@ -48,9 +48,9 @@ int main(int argc, char **argv) {
 
     start = clock();
 
-    while ((bytes_read = Rio_readn(clientfd, buf, BLOCK_SIZE)) > 0) {
+    while ((bytes_read = Rio_readn(clientfd, file_buf, BLOCK_SIZE)) > 0) {
         total_bytes_read += bytes_read;
-        if (fwrite(buf, 1, bytes_read, file) != bytes_read) {
+        if (fwrite(file_buf, 1, bytes_read, file) != bytes_read) {
             fprintf(stderr, "Error writing to local file %s\n", filename);
             Fclose(file);
             Close(clientfd);
