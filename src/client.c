@@ -7,10 +7,12 @@
 
 int main(int argc, char **argv) {
     int clientfd;
-    char *host, file_buf[BLOCK_SIZE], filename[MAX_NAME_LEN];
+    char *host, file_buf[BLOCK_SIZE];
+    Response res;
+    Request req;
     FILE *file;
-    ssize_t bytes_read, total_bytes_read = 0;
-    Protocol protocol;
+    ssize_t bytes_read;
+    long bytes_to_read;
     clock_t start, end;
     float total_time;
 
@@ -20,53 +22,47 @@ int main(int argc, char **argv) {
     }
 
     host = argv[1];
-    strncpy(filename, argv[2], strlen(argv[2]) + 1); // Copy filename to buffer
 
     clientfd = Open_clientfd(host, PORT);
 
     printf("client connected to server OS\n");
 
-    Rio_writen(clientfd, filename, MAX_NAME_LEN); // write to server
+    send_request(clientfd, &req, argv[2]); // Send request to server
 
-    if (Rio_readn(clientfd, &protocol, sizeof(protocol)) > 0) { // Get response from server
-        get_response(&protocol, &protocol.status, protocol.message);
-        if (protocol.status == 404) {
-            printf("%s\n", protocol.message);
-            Close(clientfd);
-            exit(0);
-        } else if (protocol.status == 200) {
-            printf("%s\n", protocol.message);
+    if (Rio_readn(clientfd, &res, sizeof(res)) > 0) { // Get response from server
+        get_response(&res, &res.status, res.message, &res.file_size);
+        bytes_to_read = res.file_size;
+        if (res.status == 200) {
+            printf("%s\n", res.message);
+            file = Fopen(req.filename, "wb"); // Open or create a local file for writing in binary mode
+            if (file != NULL) {
+                start = clock();
+
+                while (bytes_to_read > 0 && (bytes_read = Rio_readn(clientfd, file_buf, BLOCK_SIZE)) > 0) {
+                    bytes_to_read -= bytes_read;
+                    if (fwrite(file_buf, 1, bytes_read, file) != bytes_read) {
+                        fprintf(stderr, "Error writing to local file %s\n", req.filename);
+                        Fclose(file);
+                        Close(clientfd);
+                        exit(1);
+                    }
+                }
+
+                end = clock();
+
+                total_time = (end - start) * 1e-6;
+
+                printf("File %s received and saved\n", req.filename);
+                printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
+                       (res.file_size / total_time) / 1024);
+                Fclose(file);
+            } else {
+                fprintf(stderr, "Error opening local file %s\n", req.filename);
+            }
+        } else {
+            printf("%s\n", res.message);
         }
     }
-
-    file = Fopen(filename, "wb"); // Open or create a local file for writing in binary mode
-    if (file == NULL) {
-        fprintf(stderr, "Error opening local file %s\n", filename);
-        Close(clientfd);
-        exit(1);
-    }
-
-    start = clock();
-
-    while ((bytes_read = Rio_readn(clientfd, file_buf, BLOCK_SIZE)) > 0) {
-        total_bytes_read += bytes_read;
-        if (fwrite(file_buf, 1, bytes_read, file) != bytes_read) {
-            fprintf(stderr, "Error writing to local file %s\n", filename);
-            Fclose(file);
-            Close(clientfd);
-            exit(1);
-        }
-    }
-
-    end = clock();
-
-    total_time = (end - start) * 1e-6;
-
-    printf("File %s received and saved\n", filename);
-    printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", total_bytes_read, total_time,
-           (total_bytes_read / total_time) / 1024);
-    Fclose(file);
-
 
     Close(clientfd);
     exit(0);

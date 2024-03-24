@@ -9,12 +9,21 @@
 #define PORT 2121
 
 typedef struct {
+    char filename[MAX_NAME_LEN];
+} Request;
+
+typedef struct {
     int status;
     char message[MAX_MESSAGE_LEN];
-} Protocol;
+    long file_size;
+} Response;
 
-void set_response(Protocol *protocol, int status, char *message);
+void send_request(int fd, Request *req, char *filename);
 
-void get_response(Protocol *protocol, int *status, char *message);
+void get_request(int fd, Request *req, char *filename);
+
+void send_response(Response *res, int status, char *message, char *filename);
+
+void get_response(Response *res, int *status, char *message, long *file_size);
 
 #endif /* PROTOCOL_H */

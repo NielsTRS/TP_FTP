@@ -19,32 +19,26 @@ void sigint_handler(int sig) {
 void send_file(int connfd, char *filename) {
     char buf[BLOCK_SIZE];
     FILE *file;
-    Protocol protocol;
+    Response res;
     ssize_t bytes_read;
 
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        set_response(&protocol, 404, "File not found");
-        Rio_writen(connfd, &protocol, sizeof(protocol));
+        send_response(&res, 404, "File not found", NULL);
+        Rio_writen(connfd, &res, sizeof(res));
         return;
     }
 
     printf("Sending content of %s\n", filename);
-    set_response(&protocol, 200, "File found");
-    Rio_writen(connfd, &protocol, sizeof(protocol));
+    send_response(&res, 200, "File found", filename);
+    Rio_writen(connfd, &res, sizeof(res));
 
     while ((bytes_read = Fread(buf, 1, BLOCK_SIZE, file)) > 0) {
         Rio_writen(connfd, buf, bytes_read);
     }
 
     Fclose(file);
-}
-
-void get_filename(int connfd, char *filename) {
-    if (Rio_readn(connfd, filename, MAX_NAME_LEN) != 0) {
-        printf("Received request for : %s\n", filename);
-    }
 }
 
 int main(int argc, char **argv) {
@@ -56,7 +50,7 @@ int main(int argc, char **argv) {
     clientlen = (socklen_t)
             sizeof(clientaddr);
 
-    char filename[MAX_NAME_LEN];
+    Request req;
 
     Signal(SIGINT, sigint_handler);
 
@@ -78,8 +72,9 @@ int main(int argc, char **argv) {
                 printf("server connected to %s (%s) using process %d\n", client_hostname,
                        client_ip_string, getpid());
 
-                get_filename(connfd, filename);
-                send_file(connfd, filename);
+                get_request(connfd, &req, req.filename);
+                printf("Received request for : %s\n", req.filename);
+                send_file(connfd, req.filename);
 
                 Close(connfd);
             }
