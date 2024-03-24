@@ -10,11 +10,11 @@ LDFLAGS =
 LIBS += -lpthread
 
 # Include directory and header file
-INCLUDE = csapp.h
+INCLUDE = csapp.h protocol.h
 INCLDIR = -I.
 
 # Object files and programs
-OBJS = csapp.o
+OBJS = csapp.o protocol.o
 PROGS = client server
 
 # Output directories

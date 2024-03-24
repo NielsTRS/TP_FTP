@@ -29,11 +29,12 @@ int main(int argc, char **argv) {
     Rio_writen(clientfd, filename, MAX_NAME_LEN); // write to server
 
     if (Rio_readn(clientfd, &protocol, sizeof(protocol)) > 0) { // Get response from server
-        if (ntohl(protocol.status) == 404) {
+        get_response(&protocol, &protocol.status, protocol.message);
+        if (protocol.status == 404) {
             printf("%s\n", protocol.message);
             Close(clientfd);
             exit(0);
-        } else if (ntohl(protocol.status) == 200) {
+        } else if (protocol.status == 200) {
             printf("%s\n", protocol.message);
         }
     }

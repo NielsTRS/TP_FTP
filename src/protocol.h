@@ -13,4 +13,8 @@ typedef struct {
     char message[MAX_MESSAGE_LEN];
 } Protocol;
 
+void set_response(Protocol *protocol, int status, char *message);
+
+void get_response(Protocol *protocol, int *status, char *message);
+
 #endif /* PROTOCOL_H */

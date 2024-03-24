@@ -25,15 +25,13 @@ void send_file(int connfd, char *filename) {
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        protocol.status = htonl(404);
-        strcpy(protocol.message, "File not found");
+        set_response(&protocol, 404, "File not found");
         Rio_writen(connfd, &protocol, sizeof(protocol));
         return;
     }
 
     printf("Sending content of %s\n", filename);
-    protocol.status = htonl(200);
-    strcpy(protocol.message, "File found");
+    set_response(&protocol, 200, "File found");
     Rio_writen(connfd, &protocol, sizeof(protocol));
 
     while ((bytes_read = Fread(buf, 1, BLOCK_SIZE, file)) > 0) {
