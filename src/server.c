@@ -26,7 +26,7 @@ void send_file(int connfd, char *filename) {
 
     file = fopen(filename, "r");
     if (file == NULL) {
-        printf("Error opening file %s\n", filename);
+        fprintf(stderr, "Error opening file %s\n", filename);
         send_response(connfd, &res, 404, "File not found", 0, 0);
         return;
     }
@@ -39,12 +39,29 @@ void send_file(int connfd, char *filename) {
     for (long i = 0; i < block_number; i++) {
         Block block;
         bytes_read = fread(block.buf, 1, BLOCK_SIZE, file);
+        if (bytes_read < BLOCK_SIZE) {
+            if (feof(file)) {
+                printf("End of file reached\n");
+            } else {
+                fprintf(stderr, "Error reading from file: %s\n", strerror(errno));
+                Fclose(file);
+                return;
+            }
+        }
         block.size = bytes_read;
         Rio_writen(connfd, &block, sizeof(Block));
     }
     printf("File sent\n");
 
     Fclose(file);
+}
+
+void handle_request(int fd) {
+    Request req;
+    while (get_request(fd, &req, req.filename)) {
+        printf("Received request for : %s\n", req.filename);
+        send_file(fd, req.filename);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -55,8 +72,6 @@ int main(int argc, char **argv) {
     char client_hostname[MAX_NAME_LEN];
     clientlen = (socklen_t)
             sizeof(clientaddr);
-
-    Request req;
 
     Signal(SIGINT, sigint_handler);
 
@@ -78,10 +93,7 @@ int main(int argc, char **argv) {
                 printf("server connected to %s (%s) using process %d\n", client_hostname,
                        client_ip_string, getpid());
 
-                while (get_request(connfd, &req, req.filename)) {
-                    printf("Received request for : %s\n", req.filename);
-                    send_file(connfd, req.filename);
-                }
+                handle_request(connfd);
 
                 printf("Client %s (%s) disconnected\n", client_hostname, client_ip_string);
 
