@@ -34,7 +34,16 @@ void send_file(int connfd, char *filename) {
     send_response(&res, 200, "File found", filename);
     Rio_writen(connfd, &res, sizeof(res));
 
-    while ((bytes_read = Fread(buf, 1, BLOCK_SIZE, file)) > 0) {
+    for (int i = 0; i <= res.block_number; i++) {
+        bytes_read = fread(buf, 1, BLOCK_SIZE, file);
+        if (bytes_read < BLOCK_SIZE) {
+            if (feof(file)) {
+                printf("End of file reached.\n");
+            } else if (ferror(file)) {
+                fprintf(stderr, "Error reading from file, stopped at block %d\n", i);
+                break;
+            }
+        }
         Rio_writen(connfd, buf, bytes_read);
     }
 

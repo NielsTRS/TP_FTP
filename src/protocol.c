@@ -19,11 +19,13 @@ void send_response(Response *res, int status, char *message, char *filename) {
     if (filename != NULL) {
         stat(filename, &st);
         res->file_size = htonl(st.st_size);
+        res->block_number = htonl(st.st_size / BLOCK_SIZE);
     }
 }
 
-void get_response(Response *res, int *status, char *message, long *file_size) {
+void get_response(Response *res, int *status, int *block_number, char *message, long *file_size) {
     *status = ntohl(res->status);
+    *block_number = ntohl(res->block_number);
     strcpy(message, res->message);
     *file_size = ntohl(res->file_size);
 }

@@ -11,8 +11,7 @@ int main(int argc, char **argv) {
     Response res;
     Request req;
     FILE *file;
-    ssize_t bytes_read;
-    long bytes_to_read;
+    ssize_t bytes_read, total_bytes = 0;
     clock_t start, end;
     float total_time;
 
@@ -30,22 +29,35 @@ int main(int argc, char **argv) {
     send_request(clientfd, &req, argv[2]); // Send request to server
 
     if (Rio_readn(clientfd, &res, sizeof(res)) > 0) { // Get response from server
-        get_response(&res, &res.status, res.message, &res.file_size);
-        bytes_to_read = res.file_size;
+        get_response(&res, &res.status, &res.block_number, res.message, &res.file_size);
         if (res.status == 200) {
             printf("%s\n", res.message);
             file = Fopen(req.filename, "wb"); // Open or create a local file for writing in binary mode
             if (file != NULL) {
                 start = clock();
 
-                while (bytes_to_read > 0 && (bytes_read = Rio_readn(clientfd, file_buf, BLOCK_SIZE)) > 0) {
-                    bytes_to_read -= bytes_read;
-                    if (fwrite(file_buf, 1, bytes_read, file) != bytes_read) {
-                        fprintf(stderr, "Error writing to local file %s\n", req.filename);
+                for (int i = 0; i <= res.block_number; i++) {
+                    if ((bytes_read = Rio_readn(clientfd, file_buf, BLOCK_SIZE)) > 0) {
+                        total_bytes += bytes_read;
+                        if (fwrite(file_buf, 1, bytes_read, file) != bytes_read) {
+                            fprintf(stderr, "Error writing to local file %s\n", req.filename);
+                            Fclose(file);
+                            Close(clientfd);
+                            exit(1);
+                        }
+                    } else {
+                        fprintf(stderr, "Error downloading file from server\n");
                         Fclose(file);
                         Close(clientfd);
                         exit(1);
                     }
+                }
+
+                if(total_bytes != res.file_size) {
+                    fprintf(stderr, "Error: received %zd bytes, expected %zd bytes\n", total_bytes, res.file_size);
+                    Fclose(file);
+                    Close(clientfd);
+                    exit(1);
                 }
 
                 end = clock();
