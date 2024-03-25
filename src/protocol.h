@@ -23,8 +23,8 @@ void send_request(int fd, Request *req, char *filename);
 
 void get_request(int fd, Request *req, char *filename);
 
-void send_response(Response *res, int status, char *message, long file_size, long block_number);
+void send_response(int fd, Response *res, int status, char *message, long file_size, long block_number);
 
-void get_response(Response *res, int *status, long *block_number, char *message, long *file_size);
+void get_response(int fd, Response *res, int *status, long *block_number, char *message, long *file_size);
 
 #endif /* PROTOCOL_H */

@@ -12,16 +12,19 @@ void get_request(int fd, Request *req, char *filename) {
     }
 }
 
-void send_response(Response *res, int status, char *message, long file_size, long block_number) {
+void send_response(int fd, Response *res, int status, char *message, long file_size, long block_number) {
     res->status = htonl(status);
     strcpy(res->message, message);
     res->file_size = htonl(file_size);
     res->block_number = htonl(block_number);
+    Rio_writen(fd, res, sizeof(Response));
 }
 
-void get_response(Response *res, int *status, long *block_number, char *message, long *file_size) {
-    *status = ntohl(res->status);
-    *block_number = ntohl(res->block_number);
-    strcpy(message, res->message);
-    *file_size = ntohl(res->file_size);
+void get_response(int fd, Response *res, int *status, long *block_number, char *message, long *file_size) {
+    if(Rio_readn(fd, res, sizeof(Response)) > 0){
+        *status = ntohl(res->status);
+        *block_number = ntohl(res->block_number);
+        strcpy(message, res->message);
+        *file_size = ntohl(res->file_size);
+    }
 }

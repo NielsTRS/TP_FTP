@@ -27,8 +27,7 @@ void send_file(int connfd, char *filename) {
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        send_response(&res, 404, "File not found", 0, 0);
-        Rio_writen(connfd, &res, sizeof(res));
+        send_response(connfd, &res, 404, "File not found", 0, 0);
         return;
     }
 
@@ -36,8 +35,7 @@ void send_file(int connfd, char *filename) {
     block_number = (st.st_size / BLOCK_SIZE) + 1;
 
     printf("Sending content of %s\n", filename);
-    send_response(&res, 200, "File found", st.st_size, block_number);
-    Rio_writen(connfd, &res, sizeof(res));
+    send_response(connfd, &res, 200, "File found", st.st_size, block_number);
     for (long i = 0; i < block_number; i++) {
         bytes_read = fread(buf, 1, BLOCK_SIZE, file);
         Rio_writen(connfd, buf, bytes_read);
