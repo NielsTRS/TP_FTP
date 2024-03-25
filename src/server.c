@@ -21,31 +21,28 @@ void send_file(int connfd, char *filename) {
     FILE *file;
     Response res;
     ssize_t bytes_read;
+    struct stat st;
+    long block_number;
 
     file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error opening file %s\n", filename);
-        send_response(&res, 404, "File not found", NULL);
+        send_response(&res, 404, "File not found", 0, 0);
         Rio_writen(connfd, &res, sizeof(res));
         return;
     }
 
-    printf("Sending content of %s\n", filename);
-    send_response(&res, 200, "File found", filename);
-    Rio_writen(connfd, &res, sizeof(res));
+    stat(filename, &st);
+    block_number = (st.st_size / BLOCK_SIZE) + 1;
 
-    for (int i = 0; i <= res.block_number; i++) {
+    printf("Sending content of %s\n", filename);
+    send_response(&res, 200, "File found", st.st_size, block_number);
+    Rio_writen(connfd, &res, sizeof(res));
+    for (long i = 0; i < block_number; i++) {
         bytes_read = fread(buf, 1, BLOCK_SIZE, file);
-        if (bytes_read < BLOCK_SIZE) {
-            if (feof(file)) {
-                printf("End of file reached.\n");
-            } else if (ferror(file)) {
-                fprintf(stderr, "Error reading from file, stopped at block %d\n", i);
-                break;
-            }
-        }
         Rio_writen(connfd, buf, bytes_read);
     }
+    printf("File sent\n");
 
     Fclose(file);
 }

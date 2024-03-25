@@ -14,7 +14,7 @@ typedef struct {
 
 typedef struct {
     int status;
-    int block_number;
+    long block_number;
     char message[MAX_MESSAGE_LEN];
     long file_size;
 } Response;
@@ -23,8 +23,8 @@ void send_request(int fd, Request *req, char *filename);
 
 void get_request(int fd, Request *req, char *filename);
 
-void send_response(Response *res, int status, char *message, char *filename);
+void send_response(Response *res, int status, char *message, long file_size, long block_number);
 
-void get_response(Response *res, int *status, int *block_number, char *message, long *file_size);
+void get_response(Response *res, int *status, long *block_number, char *message, long *file_size);
 
 #endif /* PROTOCOL_H */

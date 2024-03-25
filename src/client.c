@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
             if (file != NULL) {
                 start = clock();
 
-                for (int i = 0; i <= res.block_number; i++) {
+                for (long i = 0; i < res.block_number; i++) {
                     if ((bytes_read = Rio_readn(clientfd, file_buf, BLOCK_SIZE)) > 0) {
                         total_bytes += bytes_read;
                         if (fwrite(file_buf, 1, bytes_read, file) != bytes_read) {
