@@ -9,6 +9,7 @@
 
 pid_t pids[NB_PROC];
 
+
 void sigint_handler(int sig) {
     for (int i = 0; i < NB_PROC; i++) {
         Kill(pids[i], SIGINT);
@@ -17,7 +18,6 @@ void sigint_handler(int sig) {
 }
 
 void send_file(int connfd, char *filename) {
-    char buf[BLOCK_SIZE];
     FILE *file;
     Response res;
     ssize_t bytes_read;
@@ -37,8 +37,10 @@ void send_file(int connfd, char *filename) {
     printf("Sending content of %s\n", filename);
     send_response(connfd, &res, 200, "File found", st.st_size, block_number);
     for (long i = 0; i < block_number; i++) {
-        bytes_read = fread(buf, 1, BLOCK_SIZE, file);
-        Rio_writen(connfd, buf, bytes_read);
+        Block block;
+        bytes_read = fread(block.buf, 1, BLOCK_SIZE, file);
+        block.size = bytes_read;
+        Rio_writen(connfd, &block, sizeof(Block));
     }
     printf("File sent\n");
 
@@ -76,9 +78,12 @@ int main(int argc, char **argv) {
                 printf("server connected to %s (%s) using process %d\n", client_hostname,
                        client_ip_string, getpid());
 
-                get_request(connfd, &req, req.filename);
-                printf("Received request for : %s\n", req.filename);
-                send_file(connfd, req.filename);
+                while (get_request(connfd, &req, req.filename)) {
+                    printf("Received request for : %s\n", req.filename);
+                    send_file(connfd, req.filename);
+                }
+
+                printf("Client %s (%s) disconnected\n", client_hostname, client_ip_string);
 
                 Close(connfd);
             }

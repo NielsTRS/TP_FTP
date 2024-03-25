@@ -19,12 +19,17 @@ typedef struct {
     long file_size;
 } Response;
 
+typedef struct {
+    char buf[BLOCK_SIZE];
+    ssize_t size;
+} Block;
+
 void send_request(int fd, Request *req, char *filename);
 
-void get_request(int fd, Request *req, char *filename);
+int get_request(int fd, Request *req, char *filename);
 
 void send_response(int fd, Response *res, int status, char *message, long file_size, long block_number);
 
-void get_response(int fd, Response *res, int *status, long *block_number, char *message, long *file_size);
+int get_response(int fd, Response *res, int *status, long *block_number, char *message, long *file_size);
 
 #endif /* PROTOCOL_H */
