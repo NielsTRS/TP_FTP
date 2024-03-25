@@ -10,25 +10,25 @@ void receive_file(int fd, Response *res, Request *req) {
     Block block;
     ssize_t result;
 
-    file = Fopen(req->filename, "wb"); // Open or create a local file for writing in binary mode
+    file = fopen(req->filename, "wb"); // Open or create a local file for writing in binary mode
     if (file != NULL) {
         for (long i = 0; i < res->block_number; i++) {
             result = Rio_readn(fd, &block, sizeof(Block));
             if (result < sizeof(Block)) {
                 fprintf(stderr, "Error reading from socket: only %zd out of %zd bytes read\n", result, sizeof(Block));
-                Fclose(file);
+                fclose(file);
                 return;
             }
             result = fwrite(block.buf, 1, block.size, file);
             if (result < block.size) {
                 fprintf(stderr, "Error writing to file: only %zd out of %zd bytes written\n", result, block.size);
-                Fclose(file);
+                fclose(file);
                 return;
             }
         }
 
         printf("File %s received and saved\n", req->filename);
-        Fclose(file);
+        fclose(file);
     } else {
         fprintf(stderr, "Error opening local file %s\n", req->filename);
     }

@@ -31,7 +31,7 @@ void send_file(int connfd, char *filename) {
         return;
     }
 
-    stat(filename, &st);
+    fstat(fileno(file), &st);
     block_number = (st.st_size / BLOCK_SIZE) + 1;
 
     printf("Sending content of %s\n", filename);
@@ -44,7 +44,7 @@ void send_file(int connfd, char *filename) {
                 printf("End of file reached\n");
             } else {
                 fprintf(stderr, "Error reading from file: %s\n", strerror(errno));
-                Fclose(file);
+                fclose(file);
                 return;
             }
         }
@@ -53,7 +53,7 @@ void send_file(int connfd, char *filename) {
     }
     printf("File sent\n");
 
-    Fclose(file);
+    fclose(file);
 }
 
 void handle_request(int fd) {
