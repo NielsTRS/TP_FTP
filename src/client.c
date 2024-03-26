@@ -4,6 +4,42 @@
 
 #include "csapp.h"
 #include "protocol.h"
+#include <dirent.h>
+
+long get_last_received_block_number(char *filename) {
+    long last_number = 0;
+    long previous_last_number = 0;
+    int next_char;
+    FILE *file = fopen(filename, "r");
+    if(file == NULL) {
+        return previous_last_number;
+    }
+    while (fscanf(file, "%ld", &last_number) == 1) {
+        next_char = fgetc(file);
+        if(next_char == '\n') {
+            previous_last_number = last_number;
+        }
+    }
+
+    fclose(file);
+    printf("Last block received: %ld\n", previous_last_number);
+    return previous_last_number;
+}
+
+void backup_part_files(){
+    DIR *d;
+    struct dirent *dir;
+    d = opendir(".");
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+            if(strstr(dir->d_name, ".part") != NULL){
+                printf("%s\n", dir->d_name);
+                get_last_received_block_number(dir->d_name);
+            }
+        }
+        closedir(d);
+    }
+}
 
 void receive_file(int fd, Response *res, Request *req) {
     FILE *file;
@@ -70,7 +106,13 @@ int main(int argc, char **argv) {
 
     printf("Client connected to server OS\n");
 
+    printf("Checking for incomplete files\n");
+    backup_part_files();
+
+    printf("\nEnter the name of the file you want to download or 'bye' to exit\n");
+    printf("ftp > ");
     while (Fgets(user_input, MAX_NAME_LEN, stdin) != NULL) {
+
         if (strcmp(user_input, "bye\n") == 0) {
             break;
         }
@@ -96,6 +138,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error receiving response from server\n");
             break;
         }
+        printf("\nftp > ");
     }
 
     Close(clientfd);
