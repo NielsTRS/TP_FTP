@@ -11,34 +11,18 @@ long get_last_received_block_number(char *filename) {
     long previous_last_number = 0;
     int next_char;
     FILE *file = fopen(filename, "r");
-    if(file == NULL) {
-        return previous_last_number;
+    if (file == NULL) {
+        return -1;
     }
     while (fscanf(file, "%ld", &last_number) == 1) {
         next_char = fgetc(file);
-        if(next_char == '\n') {
+        if (next_char == '\n') {
             previous_last_number = last_number;
         }
     }
 
     fclose(file);
-    printf("Last block received: %ld\n", previous_last_number);
     return previous_last_number;
-}
-
-void backup_part_files(){
-    DIR *d;
-    struct dirent *dir;
-    d = opendir(".");
-    if (d) {
-        while ((dir = readdir(d)) != NULL) {
-            if(strstr(dir->d_name, ".part") != NULL){
-                printf("%s\n", dir->d_name);
-                get_last_received_block_number(dir->d_name);
-            }
-        }
-        closedir(d);
-    }
 }
 
 void receive_file(int fd, Response *res, Request *req) {
@@ -86,14 +70,61 @@ void receive_file(int fd, Response *res, Request *req) {
     }
 }
 
-int main(int argc, char **argv) {
-    int clientfd;
-    char *host;
-    char user_input[MAX_NAME_LEN];
+void handle(int fd, char *user_input) {
     Response res;
     Request req;
     clock_t start, end;
     float total_time;
+
+    send_request(fd, &req, user_input); // Send request to server
+    if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
+        printf("Received response from server\n");
+        if (res.status == 200) {
+            printf("%s\n", res.message);
+            start = clock();
+            receive_file(fd, &res, &req);
+            end = clock();
+            total_time = (end - start) * 1e-6;
+
+            printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
+                   (res.file_size / total_time) / 1024);
+        } else {
+            printf("%s\n", res.message);
+        }
+    } else {
+        fprintf(stderr, "Error receiving response from server\n");
+        exit(0);
+    }
+}
+
+void backup_part_files(int fd) {
+    DIR *d;
+    struct dirent *dir;
+    printf("Checking for incomplete files\n");
+
+    d = opendir(".");
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+            if (strstr(dir->d_name, ".part") != NULL) {
+                char *real_filename = strcpy(real_filename, dir->d_name);
+                long last_block = get_last_received_block_number(dir->d_name);
+                printf("Found incomplete file %s with %ld blocks\n", dir->d_name, last_block);
+                if (last_block != -1) {
+                    real_filename[strlen(dir->d_name) - strlen(".part")] = '\0';
+                    printf("Resuming download of : %s\n", real_filename);
+                    handle(fd, real_filename);
+                }
+            }
+        }
+        closedir(d);
+    }
+    printf("Check complete\n");
+}
+
+int main(int argc, char **argv) {
+    int clientfd;
+    char *host;
+    char user_input[MAX_NAME_LEN];
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <host> \n", argv[0]);
@@ -106,8 +137,7 @@ int main(int argc, char **argv) {
 
     printf("Client connected to server OS\n");
 
-    printf("Checking for incomplete files\n");
-    backup_part_files();
+    backup_part_files(clientfd);
 
     printf("\nEnter the name of the file you want to download or 'bye' to exit\n");
     printf("ftp > ");
@@ -119,25 +149,8 @@ int main(int argc, char **argv) {
 
         user_input[strlen(user_input) - 1] = '\0';
 
-        send_request(clientfd, &req, user_input); // Send request to server
-        if (get_response(clientfd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
-            printf("Received response from server\n");
-            if (res.status == 200) {
-                printf("%s\n", res.message);
-                start = clock();
-                receive_file(clientfd, &res, &req);
-                end = clock();
-                total_time = (end - start) * 1e-6;
+        handle(clientfd, user_input);
 
-                printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
-                       (res.file_size / total_time) / 1024);
-            } else {
-                printf("%s\n", res.message);
-            }
-        } else {
-            fprintf(stderr, "Error receiving response from server\n");
-            break;
-        }
         printf("\nftp > ");
     }
 
