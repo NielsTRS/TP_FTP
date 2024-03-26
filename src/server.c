@@ -17,12 +17,13 @@ void sigint_handler(int sig) {
     exit(0);
 }
 
-void send_file(int connfd, char *filename) {
+void send_file(int connfd, char *filename, long starting_block) {
     FILE *file;
     Response res;
     ssize_t bytes_read;
     struct stat st;
     long block_number;
+    long file_size;
 
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -33,10 +34,14 @@ void send_file(int connfd, char *filename) {
 
     fstat(fileno(file), &st);
     block_number = (st.st_size / BLOCK_SIZE) + 1;
+    file_size = st.st_size - (starting_block * BLOCK_SIZE);
+
+    // Skip to the start block
+    fseek(file, starting_block * BLOCK_SIZE, SEEK_SET);
 
     printf("Sending content of %s\n", filename);
-    send_response(connfd, &res, 200, "File found", st.st_size, block_number);
-    for (long i = 0; i < block_number; i++) {
+    send_response(connfd, &res, 200, "File found", file_size, block_number);
+    for (long i = starting_block; i < block_number; i++) {
         Block block;
         bytes_read = fread(block.buf, 1, BLOCK_SIZE, file);
         if (bytes_read < BLOCK_SIZE) {
@@ -64,7 +69,7 @@ void handle_request(int fd) {
     Request req;
     while (get_request(fd, &req, req.filename, &req.starting_block)) {
         printf("Received request for %s starting at block %ld\n", req.filename, req.starting_block);
-        send_file(fd, req.filename);
+        send_file(fd, req.filename, req.starting_block);
     }
 }
 

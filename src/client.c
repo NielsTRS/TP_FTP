@@ -35,11 +35,19 @@ void receive_file(int fd, Response *res, Request *req) {
     strcpy(save_filename, req->filename);
     strcat(save_filename, ".part");
 
-    file = fopen(req->filename, "wb"); // Open or create a local file for writing in binary mode
+    // If the file already exists, remove it
+    if (access(req->filename, F_OK) != -1 && access(save_filename, F_OK) != -1) {
+        file = fopen(req->filename, "rb+");
+    } else {
+        file = fopen(req->filename, "wb");
+    }
+
     save_file = fopen(save_filename, "w"); // store the position of the received blocks
     if (file != NULL) {
         if (save_file != NULL) {
-            for (long i = 0; i < res->block_number; i++) {
+            long starting_block = ntohl(req->starting_block);
+            fseek(file, starting_block * BLOCK_SIZE, SEEK_SET);
+            for (long i = starting_block; i < res->block_number; i++) {
                 result = Rio_readn(fd, &block, sizeof(Block));
                 if (result < sizeof(Block)) {
                     fprintf(stderr, "Error reading from socket: only %zd out of %zd bytes read\n", result,
