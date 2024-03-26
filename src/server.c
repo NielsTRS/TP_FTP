@@ -6,6 +6,7 @@
 #include "protocol.h"
 
 #define NB_PROC 3
+#define FILE_DIRECTORY "files/"
 
 pid_t pids[NB_PROC];
 
@@ -24,8 +25,12 @@ void send_file(int connfd, char *filename, long starting_block) {
     struct stat st;
     long block_number;
     long file_size;
+    char full_path[MAX_NAME_LEN];
 
-    file = fopen(filename, "r");
+    strcpy(full_path, FILE_DIRECTORY);
+    strcat(full_path, filename);
+
+    file = fopen(full_path, "r");
     if (file == NULL) {
         fprintf(stderr, "Error opening file %s\n", filename);
         send_response(connfd, &res, 404, "File not found", 0, 0);
@@ -81,8 +86,14 @@ int main(int argc, char **argv) {
     char client_hostname[MAX_NAME_LEN];
     clientlen = (socklen_t)
             sizeof(clientaddr);
+    struct stat st;
 
     Signal(SIGINT, sigint_handler);
+
+    // make directory if it doesn't exist
+    if (stat(FILE_DIRECTORY, &st) == -1) {
+        mkdir(FILE_DIRECTORY, 0700);
+    }
 
     listenfd = Open_listenfd(PORT);
 

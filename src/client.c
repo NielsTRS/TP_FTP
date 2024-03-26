@@ -7,6 +7,7 @@
 #include <dirent.h>
 
 #define EXTENSION ".part"
+#define FILE_DIRECTORY "files/"
 
 // Get the last valid block number received from the server
 long get_last_received_block_number(char *filename) {
@@ -34,18 +35,23 @@ void receive_file(int fd, Response *res, Request *req) {
     FILE *save_file;
     Block block;
     ssize_t result;
-    char save_filename[MAX_NAME_LEN + 5];
 
-    strcpy(save_filename, req->filename);
-    strcat(save_filename, EXTENSION);
+    char full_path[MAX_NAME_LEN];
+    char full_path_save[MAX_NAME_LEN];
 
-    if (access(req->filename, F_OK) != -1 && access(save_filename, F_OK) != -1) {
-        file = fopen(req->filename, "rb+");
+    strcpy(full_path, FILE_DIRECTORY);
+    strcat(full_path, req->filename);
+
+    strcpy(full_path_save, full_path);
+    strcat(full_path_save, EXTENSION);
+
+    if (access(full_path, F_OK) != -1 && access(full_path_save, F_OK) != -1) {
+        file = fopen(full_path, "rb+");
     } else {
-        file = fopen(req->filename, "wb");
+        file = fopen(full_path, "wb");
     }
 
-    save_file = fopen(save_filename, "w"); // store the position of the received blocks
+    save_file = fopen(full_path_save, "w"); // store the position of the received blocks
     if (file != NULL) {
         if (save_file != NULL) {
             long starting_block = ntohl(req->starting_block);
@@ -72,12 +78,12 @@ void receive_file(int fd, Response *res, Request *req) {
             printf("File %s received and saved\n", req->filename);
             fclose(save_file);
             fclose(file);
-            remove(save_filename);
+            remove(full_path_save);
         } else {
-            fprintf(stderr, "Error opening save file %s\n", save_filename);
+            fprintf(stderr, "Error opening save file %s\n", full_path_save);
         }
     } else {
-        fprintf(stderr, "Error opening local file %s\n", req->filename);
+        fprintf(stderr, "Error opening local file %s\n", full_path);
     }
 }
 
@@ -113,19 +119,24 @@ void process(int fd, char *user_input, long starting_block) {
 void backup_part_files(int fd) {
     DIR *d;
     struct dirent *dir;
+    char filename[MAX_NAME_LEN];
+    long last_block;
+
     printf("Checking for incomplete files\n");
 
-    d = opendir(".");
+    d = opendir(FILE_DIRECTORY);
     if (d) {
         while ((dir = readdir(d)) != NULL) {
             if (strstr(dir->d_name, EXTENSION) != NULL) {
-                char *real_filename = strcpy(real_filename, dir->d_name);
-                long last_block = get_last_received_block_number(dir->d_name);
-                printf("Found incomplete file %s with %ld blocks\n", dir->d_name, last_block);
+                strcpy(filename, FILE_DIRECTORY);
+                strcat(filename, dir->d_name);
+
+                last_block = get_last_received_block_number(filename);
+                printf("Found incomplete file %s with %ld blocks\n", filename, last_block);
                 if (last_block != -1) {
-                    real_filename[strlen(dir->d_name) - strlen(EXTENSION)] = '\0';
-                    printf("Resuming download of : %s\n", real_filename);
-                    process(fd, real_filename, last_block + 1);
+                    filename[strlen(filename) - strlen(EXTENSION)] = '\0';
+                    printf("Resuming download of : %s\n", filename);
+                    process(fd, filename, last_block + 1);
                 }
             }
         }
@@ -138,10 +149,16 @@ int main(int argc, char **argv) {
     int clientfd;
     char *host;
     char user_input[MAX_NAME_LEN];
+    struct stat st;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <host> \n", argv[0]);
         exit(0);
+    }
+
+    // make directory if it doesn't exist
+    if (stat(FILE_DIRECTORY, &st) == -1) {
+        mkdir(FILE_DIRECTORY, 0700);
     }
 
     host = argv[1];
