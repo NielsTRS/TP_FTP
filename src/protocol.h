@@ -10,6 +10,7 @@
 
 typedef struct {
     char filename[MAX_NAME_LEN];
+    long starting_block;
 } Request;
 
 typedef struct {
@@ -24,9 +25,9 @@ typedef struct {
     ssize_t size;
 } Block;
 
-void send_request(int fd, Request *req, char *filename);
+void send_request(int fd, Request *req, char *filename, long starting_block);
 
-int get_request(int fd, Request *req, char *filename);
+int get_request(int fd, Request *req, char *filename, long *starting_block);
 
 void send_response(int fd, Response *res, int status, char *message, long file_size, long block_number);
 

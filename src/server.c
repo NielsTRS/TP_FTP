@@ -49,7 +49,11 @@ void send_file(int connfd, char *filename) {
             }
         }
         block.size = bytes_read;
-        Rio_writen(connfd, &block, sizeof(Block));
+        if (rio_writen(connfd, &block, sizeof(Block)) < 0) {
+            fprintf(stderr, "Client disconnected during transfer\n");
+            fclose(file);
+            return;
+        }
     }
     printf("File sent\n");
 
@@ -58,8 +62,8 @@ void send_file(int connfd, char *filename) {
 
 void handle_request(int fd) {
     Request req;
-    while (get_request(fd, &req, req.filename)) {
-        printf("Received request for : %s\n", req.filename);
+    while (get_request(fd, &req, req.filename, &req.starting_block)) {
+        printf("Received request for %s starting at block %ld\n", req.filename, req.starting_block);
         send_file(fd, req.filename);
     }
 }

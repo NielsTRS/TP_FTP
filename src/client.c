@@ -70,13 +70,13 @@ void receive_file(int fd, Response *res, Request *req) {
     }
 }
 
-void handle(int fd, char *user_input) {
+void handle(int fd, char *user_input, long starting_block) {
     Response res;
     Request req;
     clock_t start, end;
     float total_time;
 
-    send_request(fd, &req, user_input); // Send request to server
+    send_request(fd, &req, user_input, starting_block); // Send request to server
     if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
         printf("Received response from server\n");
         if (res.status == 200) {
@@ -112,7 +112,7 @@ void backup_part_files(int fd) {
                 if (last_block != -1) {
                     real_filename[strlen(dir->d_name) - strlen(".part")] = '\0';
                     printf("Resuming download of : %s\n", real_filename);
-                    handle(fd, real_filename);
+                    handle(fd, real_filename, last_block + 1);
                 }
             }
         }
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 
         user_input[strlen(user_input) - 1] = '\0';
 
-        handle(clientfd, user_input);
+        handle(clientfd, user_input, 0);
 
         printf("\nftp > ");
     }
