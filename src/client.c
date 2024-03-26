@@ -7,28 +7,44 @@
 
 void receive_file(int fd, Response *res, Request *req) {
     FILE *file;
+    FILE *save_file;
     Block block;
     ssize_t result;
+    char save_filename[MAX_NAME_LEN + 5];
+
+    strcpy(save_filename, req->filename);
+    strcat(save_filename, ".part");
 
     file = fopen(req->filename, "wb"); // Open or create a local file for writing in binary mode
+    save_file = fopen(save_filename, "w"); // store the position of the received blocks
     if (file != NULL) {
-        for (long i = 0; i < res->block_number; i++) {
-            result = Rio_readn(fd, &block, sizeof(Block));
-            if (result < sizeof(Block)) {
-                fprintf(stderr, "Error reading from socket: only %zd out of %zd bytes read\n", result, sizeof(Block));
-                fclose(file);
-                return;
+        if (save_file != NULL) {
+            for (long i = 0; i < res->block_number; i++) {
+                result = Rio_readn(fd, &block, sizeof(Block));
+                if (result < sizeof(Block)) {
+                    fprintf(stderr, "Error reading from socket: only %zd out of %zd bytes read\n", result,
+                            sizeof(Block));
+                    fclose(file);
+                    fclose(save_file);
+                    return;
+                }
+                result = fwrite(block.buf, 1, block.size, file);
+                if (result < block.size) {
+                    fprintf(stderr, "Error writing to file: only %zd out of %zd bytes written\n", result, block.size);
+                    fclose(file);
+                    fclose(save_file);
+                    return;
+                }
+                fprintf(save_file, "%ld\n", i);
             }
-            result = fwrite(block.buf, 1, block.size, file);
-            if (result < block.size) {
-                fprintf(stderr, "Error writing to file: only %zd out of %zd bytes written\n", result, block.size);
-                fclose(file);
-                return;
-            }
-        }
 
-        printf("File %s received and saved\n", req->filename);
-        fclose(file);
+            printf("File %s received and saved\n", req->filename);
+            fclose(save_file);
+            fclose(file);
+            remove(save_filename);
+        } else {
+            fprintf(stderr, "Error opening save file %s\n", save_filename);
+        }
     } else {
         fprintf(stderr, "Error opening local file %s\n", req->filename);
     }
