@@ -8,21 +8,24 @@
 #define MAX_NAME_LEN 256
 #define PORT 2121
 
+// Request structure
 typedef struct {
-    char filename[MAX_NAME_LEN];
-    long starting_block;
+    char filename[MAX_NAME_LEN]; // filename
+    long starting_block; // index of the block to start from
 } Request;
 
+// Response structure
 typedef struct {
-    int status;
-    long block_number;
-    char message[MAX_MESSAGE_LEN];
-    long file_size;
+    int status; // status code (200, 404, etc.)
+    long block_number; // number of blocks in total
+    char message[MAX_MESSAGE_LEN]; // message coming with the status code
+    long file_size; // size of the file in bytes
 } Response;
 
+// Block structure
 typedef struct {
-    char buf[BLOCK_SIZE];
-    ssize_t size;
+    char buf[BLOCK_SIZE]; // data buffer
+    ssize_t size; // size of the data buffer
 } Block;
 
 void send_request(int fd, Request *req, char *filename, long starting_block);

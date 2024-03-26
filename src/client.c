@@ -6,6 +6,9 @@
 #include "protocol.h"
 #include <dirent.h>
 
+#define EXTENSION ".part"
+
+// Get the last valid block number received from the server
 long get_last_received_block_number(char *filename) {
     long last_number = 0;
     long previous_last_number = 0;
@@ -25,6 +28,7 @@ long get_last_received_block_number(char *filename) {
     return previous_last_number;
 }
 
+// file manager
 void receive_file(int fd, Response *res, Request *req) {
     FILE *file;
     FILE *save_file;
@@ -33,9 +37,8 @@ void receive_file(int fd, Response *res, Request *req) {
     char save_filename[MAX_NAME_LEN + 5];
 
     strcpy(save_filename, req->filename);
-    strcat(save_filename, ".part");
+    strcat(save_filename, EXTENSION);
 
-    // If the file already exists, remove it
     if (access(req->filename, F_OK) != -1 && access(save_filename, F_OK) != -1) {
         file = fopen(req->filename, "rb+");
     } else {
@@ -78,7 +81,8 @@ void receive_file(int fd, Response *res, Request *req) {
     }
 }
 
-void handle(int fd, char *user_input, long starting_block) {
+// Process request and response
+void process(int fd, char *user_input, long starting_block) {
     Response res;
     Request req;
     clock_t start, end;
@@ -105,6 +109,7 @@ void handle(int fd, char *user_input, long starting_block) {
     }
 }
 
+// Check for incomplete files and resume download
 void backup_part_files(int fd) {
     DIR *d;
     struct dirent *dir;
@@ -113,14 +118,14 @@ void backup_part_files(int fd) {
     d = opendir(".");
     if (d) {
         while ((dir = readdir(d)) != NULL) {
-            if (strstr(dir->d_name, ".part") != NULL) {
+            if (strstr(dir->d_name, EXTENSION) != NULL) {
                 char *real_filename = strcpy(real_filename, dir->d_name);
                 long last_block = get_last_received_block_number(dir->d_name);
                 printf("Found incomplete file %s with %ld blocks\n", dir->d_name, last_block);
                 if (last_block != -1) {
-                    real_filename[strlen(dir->d_name) - strlen(".part")] = '\0';
+                    real_filename[strlen(dir->d_name) - strlen(EXTENSION)] = '\0';
                     printf("Resuming download of : %s\n", real_filename);
-                    handle(fd, real_filename, last_block + 1);
+                    process(fd, real_filename, last_block + 1);
                 }
             }
         }
@@ -143,7 +148,7 @@ int main(int argc, char **argv) {
 
     clientfd = Open_clientfd(host, PORT);
 
-    printf("Client connected to server OS\n");
+    printf("Client connected to FTP\n");
 
     backup_part_files(clientfd);
 
@@ -157,7 +162,7 @@ int main(int argc, char **argv) {
 
         user_input[strlen(user_input) - 1] = '\0';
 
-        handle(clientfd, user_input, 0);
+        process(clientfd, user_input, 0);
 
         printf("\nftp > ");
     }
