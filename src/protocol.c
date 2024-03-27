@@ -1,16 +1,22 @@
 #include <libgen.h>
 #include "protocol.h"
 
-void send_request(int fd, Request *req, char *filename, long starting_block) {
-    strcpy(req->filename, basename(filename));
+void send_request(int fd, Request *req, char *user_input, long starting_block, int type) {
+    if(type == FILE_TYPE) {
+        strcpy(req->user_input, basename(user_input));
+    } else {
+        strcpy(req->user_input, user_input);
+    }
     req->starting_block = htonl(starting_block);
+    req->type = htonl(type);
     Rio_writen(fd, req, sizeof(Request));
 }
 
-int get_request(int fd, Request *req, char *filename, long *starting_block) {
+int get_request(int fd, Request *req, char *user_input, long *starting_block, int *type) {
     if (Rio_readn(fd, req, sizeof(Request)) > 0) {
-        strcpy(filename, req->filename);
+        strcpy(user_input, req->user_input);
         *starting_block = ntohl(req->starting_block);
+        *type = ntohl(req->type);
         return 1;
     }
     return 0;

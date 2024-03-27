@@ -41,7 +41,7 @@ void receive_file(int fd, Response *res, Request *req) {
     char full_path_save[MAX_NAME_LEN];
 
     strcpy(full_path, FILE_DIRECTORY);
-    strcat(full_path, req->filename);
+    strcat(full_path, req->user_input);
 
     strcpy(full_path_save, full_path);
     strcat(full_path_save, EXTENSION);
@@ -76,7 +76,7 @@ void receive_file(int fd, Response *res, Request *req) {
                 fprintf(save_file, "%ld\n", i);
             }
 
-            printf("File %s received and saved\n", req->filename);
+            printf("File %s received and saved\n", req->user_input);
             fclose(save_file);
             fclose(file);
             remove(full_path_save);
@@ -89,30 +89,34 @@ void receive_file(int fd, Response *res, Request *req) {
 }
 
 // Process request and response
-void process(int fd, char *user_input, long starting_block) {
+void process(int fd, char *user_input, long starting_block, int type) {
     Response res;
     Request req;
     clock_t start, end;
     float total_time;
 
-    send_request(fd, &req, user_input, starting_block); // Send request to server
-    if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
-        printf("Received response from server\n");
-        if (res.status == 200) {
-            printf("%s\n", res.message);
-            start = clock();
-            receive_file(fd, &res, &req);
-            end = clock();
-            total_time = (end - start) * 1e-6;
+    send_request(fd, &req, user_input, starting_block, type); // Send request to server
+    if (type == FILE_TYPE) {
+        if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
+            printf("Received response from server\n");
+            if (res.status == 200) {
+                printf("%s\n", res.message);
+                start = clock();
+                receive_file(fd, &res, &req);
+                end = clock();
+                total_time = (end - start) * 1e-6;
 
-            printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
-                   (res.file_size / total_time) / 1024);
+                printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
+                       (res.file_size / total_time) / 1024);
+            } else {
+                printf("%s\n", res.message);
+            }
         } else {
-            printf("%s\n", res.message);
+            fprintf(stderr, "Error receiving response from server\n");
+            exit(0);
         }
     } else {
-        fprintf(stderr, "Error receiving response from server\n");
-        exit(0);
+        printf("Command response : %s\n", res.message);
     }
 }
 
@@ -137,13 +141,21 @@ void backup_part_files(int fd) {
                 if (last_block != -1) {
                     filename[strlen(filename) - strlen(EXTENSION)] = '\0';
                     printf("Resuming download of : %s\n", filename);
-                    process(fd, filename, last_block + 1);
+                    process(fd, filename, last_block + 1, FILE_TYPE);
                 }
             }
         }
         closedir(d);
     }
     printf("Check complete\n");
+}
+
+int is_command(char *user_input) {
+    if (strcmp(user_input, "ls") == 0 || strcmp(user_input, "pwd") == 0 || strcmp(user_input, "cd") == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -186,14 +198,17 @@ int main(int argc, char **argv) {
     printf("\nEnter the name of the file you want to download or 'bye' to exit\n");
     printf("ftp > ");
     while (Fgets(user_input, MAX_NAME_LEN, stdin) != NULL) {
+        user_input[strlen(user_input) - 1] = '\0';
 
-        if (strcmp(user_input, "bye\n") == 0) {
+        if (strcmp(user_input, "bye") == 0) {
             break;
         }
 
-        user_input[strlen(user_input) - 1] = '\0';
-
-        process(clientfd, user_input, 0);
+        if (is_command(user_input)) {
+            process(clientfd, user_input, 0, COMMAND_TYPE);
+        } else {
+            process(clientfd, user_input, 0, FILE_TYPE);
+        }
 
         printf("\nftp > ");
     }

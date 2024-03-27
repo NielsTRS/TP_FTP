@@ -6,11 +6,14 @@
 #define BLOCK_SIZE 8196 // faster than 1024
 #define MAX_MESSAGE_LEN 256
 #define MAX_NAME_LEN 256
+#define FILE_TYPE 0
+#define COMMAND_TYPE 1
 
 // Request structure
 typedef struct {
-    char filename[MAX_NAME_LEN]; // filename
+    char user_input[MAX_NAME_LEN]; // filename
     long starting_block; // index of the block to start from
+    int type; // FILE_TYPE or COMMAND_TYPE
 } Request;
 
 // Response structure
@@ -33,9 +36,9 @@ typedef struct {
     int port;
 } Slave;
 
-void send_request(int fd, Request *req, char *filename, long starting_block);
+void send_request(int fd, Request *req, char *filename, long starting_block, int type);
 
-int get_request(int fd, Request *req, char *filename, long *starting_block);
+int get_request(int fd, Request *req, char *filename, long *starting_block, int *type);
 
 void send_response(int fd, Response *res, int status, char *message, long file_size, long block_number);
 

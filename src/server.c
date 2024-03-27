@@ -71,9 +71,13 @@ void send_file(int connfd, char *filename, long starting_block) {
 
 void handle_request(int fd) {
     Request req;
-    while (get_request(fd, &req, req.filename, &req.starting_block)) {
-        printf("Received request for %s starting at block %ld\n", req.filename, req.starting_block);
-        send_file(fd, req.filename, req.starting_block);
+    while (get_request(fd, &req, req.user_input, &req.starting_block, &req.type)) {
+        if(req.type == FILE_TYPE){
+            printf("Received request for %s starting at block %ld\n", req.user_input, req.starting_block);
+            send_file(fd, req.user_input, req.starting_block);
+        } else {
+            printf("Received command %s\n", req.user_input);
+        }
     }
 }
 
