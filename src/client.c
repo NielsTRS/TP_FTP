@@ -150,14 +150,6 @@ void backup_part_files(int fd) {
     printf("Check complete\n");
 }
 
-int is_command(char *user_input) {
-    if (strcmp(user_input, "ls") == 0 || strcmp(user_input, "pwd") == 0 || strcmp(user_input, "cd") == 0) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 int main(int argc, char **argv) {
     int clientfd;
     char *host;
@@ -204,9 +196,10 @@ int main(int argc, char **argv) {
             break;
         }
 
-        if (is_command(user_input)) {
+        if (user_input[0] == '!') { // Command
+            memmove(user_input, user_input + 1, strlen(user_input));
             process(clientfd, user_input, 0, COMMAND_TYPE);
-        } else {
+        } else { // File
             process(clientfd, user_input, 0, FILE_TYPE);
         }
 
