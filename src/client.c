@@ -8,6 +8,7 @@
 
 #define EXTENSION ".part"
 #define FILE_DIRECTORY "files/"
+#define PORT 2121 // master server port
 
 // Get the last valid block number received from the server
 long get_last_received_block_number(char *filename) {
@@ -150,9 +151,28 @@ int main(int argc, char **argv) {
     char *host;
     char user_input[MAX_NAME_LEN];
     struct stat st;
+    Slave slave;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <host> \n", argv[0]);
+    if (argc == 3) { // Direct connection to server
+        host = argv[1];
+        int port = atoi(argv[2]);
+        clientfd = Open_clientfd(host, port);
+        printf("Connected directly to server at %s:%d\n", host, port);
+    } else if (argc == 2) { // Connection to master server
+        host = argv[1];
+        clientfd = Open_clientfd(host, PORT);
+        printf("Connected to master\n");
+        if (get_slave_data(clientfd, &slave, slave.ip, &slave.port) == 1) {
+            Close(clientfd);
+            printf("Connecting to slave server at %s:%d\n", slave.ip, slave.port);
+            clientfd = Open_clientfd(slave.ip, slave.port);
+        } else {
+            Close(clientfd);
+            fprintf(stderr, "Error receiving slave data from master\n");
+            exit(0);
+        }
+    } else {
+        fprintf(stderr, "Usage: %s <host> (Option : <port>)\n", argv[0]);
         exit(0);
     }
 
@@ -160,12 +180,6 @@ int main(int argc, char **argv) {
     if (stat(FILE_DIRECTORY, &st) == -1) {
         mkdir(FILE_DIRECTORY, 0700);
     }
-
-    host = argv[1];
-
-    clientfd = Open_clientfd(host, PORT);
-
-    printf("Client connected to FTP\n");
 
     backup_part_files(clientfd);
 

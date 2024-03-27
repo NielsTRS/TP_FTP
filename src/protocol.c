@@ -34,3 +34,12 @@ int get_response(int fd, Response *res, int *status, long *block_number, char *m
     }
     return 0;
 }
+
+int get_slave_data(int fd, Slave *slave, char *ip, int *port) {
+    if (Rio_readn(fd, slave, sizeof(Slave)) > 0) {
+        strcpy(ip, slave->ip);
+        *port = ntohl(slave->port);
+        return 1;
+    }
+    return 0;
+}

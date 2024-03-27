@@ -1,3 +1,2 @@
-out/client/*
-out/server/server
+out/*
 .idea/

@@ -5,11 +5,10 @@
 #include "csapp.h"
 #include "protocol.h"
 
-#define NB_PROC 3
+#define NB_PROC 10
 #define FILE_DIRECTORY "files/"
 
 pid_t pids[NB_PROC];
-
 
 void sigint_handler(int sig) {
     for (int i = 0; i < NB_PROC; i++) {
@@ -87,15 +86,23 @@ int main(int argc, char **argv) {
     clientlen = (socklen_t)
             sizeof(clientaddr);
     struct stat st;
+    int port;
 
     Signal(SIGINT, sigint_handler);
+
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+        exit(0);
+    }
+
+    port = atoi(argv[1]);
 
     // make directory if it doesn't exist
     if (stat(FILE_DIRECTORY, &st) == -1) {
         mkdir(FILE_DIRECTORY, 0700);
     }
 
-    listenfd = Open_listenfd(PORT);
+    listenfd = Open_listenfd(port);
 
     printf("Main server PID : %d\n", getpid());
 

@@ -15,14 +15,14 @@ INCLDIR = -I.
 
 # Object files and programs
 OBJS = csapp.o protocol.o
-PROGS = client server
+PROGS = client server master
 
 # Output directories
 CLIENT_DIR = ../out/client
-SERVER_DIR = ../out/server
+SERVER_DIR = ../out/servers
 
 # Targets
-all: directories $(PROGS) move
+all: directories $(PROGS) move config
 
 directories:
 	mkdir -p $(CLIENT_DIR) $(SERVER_DIR)
@@ -38,8 +38,11 @@ directories:
 # Move executables to output directories
 move:
 	mv client $(CLIENT_DIR)
+	mv master $(SERVER_DIR)
 	mv server $(SERVER_DIR)
 
+config:
+	touch $(SERVER_DIR)/config.txt
 # Clean up
 clean:
-	rm -f $(CLIENT_DIR)/client $(SERVER_DIR)/server $(OBJS)
+	rm -rf $(CLIENT_DIR) $(SERVER_DIR) $(OBJS)
