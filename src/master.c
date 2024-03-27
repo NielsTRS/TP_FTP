@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
     char ip[16];
     int port;
     ServerState state;
+    int slavefd;
 
     listenfd = Open_listenfd(PORT);
 
@@ -44,7 +45,14 @@ int main(int argc, char **argv) {
     }
 
     while (fscanf(config_file, "%s %d\n", ip, &port) != EOF && state.num_slaves < MAX_SLAVES) {
-        add_slave(&state, ip, port);
+        slavefd = open_clientfd(ip, port);
+        if(slavefd < 0) {
+            fprintf(stderr, "Could not connect to slave %s:%d\n", ip, port);
+        } else {
+            printf("Slave %s:%d is online\n", ip, port);
+            add_slave(&state, ip, port);
+            Close(slavefd);
+        }
     }
     fclose(config_file);
 
