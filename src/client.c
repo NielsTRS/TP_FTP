@@ -98,7 +98,6 @@ void process(int fd, char *user_input, long starting_block) {
 
     send_request(fd, &req, user_input, starting_block); // Send request to server
     if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
-        printf("Received response from server\n");
         if (res.status == 200) {
             printf("%s\n", res.message);
             if(res.file_size != 0) {

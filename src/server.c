@@ -90,8 +90,7 @@ void handle_request(int fd) {
             } else {
                 send_response(fd, &res, 403, "Forbidden access", 0, 0);
             }
-        } else if (strncmp(req.user_input, "ls", 2) == 0 || strncmp(req.user_input, "pwd", 3) == 0) {
-            printf("Executing command : %s\n", req.user_input);
+        } else if (strncmp(req.user_input, "ls", 2) == 0 || strncmp(req.user_input, "pwd", 3) == 0 || strncmp(req.user_input, "mkdir ", 6) == 0 || strncmp(req.user_input, "rm ", 3) == 0) {
             char command_output[MAX_MESSAGE_LEN] = "";
             FILE *fp = popen(req.user_input, "r"); // create a pipe + fork + exec in shell, returns the output
             if (fp != NULL) {
