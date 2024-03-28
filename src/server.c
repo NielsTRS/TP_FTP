@@ -71,13 +71,17 @@ void send_file(int connfd, char *filename, long starting_block) {
 
 void handle_request(int fd) {
     Request req;
-    while (get_request(fd, &req, req.user_input, &req.starting_block, &req.type)) {
-        if(req.type == FILE_TYPE){
+    Response res;
+    while (get_request(fd, &req, req.user_input, &req.starting_block)) {
+        if (strncmp(req.user_input, "get ", 4) == 0) {
+            char* filename = req.user_input + 4;
             printf("Received request for %s starting at block %ld\n", req.user_input, req.starting_block);
-            send_file(fd, req.user_input, req.starting_block);
+            send_file(fd, filename, req.starting_block);
         } else {
-            printf("Received command %s\n", req.user_input);
+            printf("Command not found\n");
+            send_response(fd, &res, 404, "Command not found", 0, 0);
         }
+
     }
 }
 

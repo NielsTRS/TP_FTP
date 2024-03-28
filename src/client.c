@@ -36,12 +36,13 @@ void receive_file(int fd, Response *res, Request *req) {
     FILE *save_file;
     Block block;
     ssize_t result;
+    char *filename = req->user_input + 4;
 
     char full_path[MAX_NAME_LEN];
     char full_path_save[MAX_NAME_LEN];
 
     strcpy(full_path, FILE_DIRECTORY);
-    strcat(full_path, req->user_input);
+    strcat(full_path, filename);
 
     strcpy(full_path_save, full_path);
     strcat(full_path_save, EXTENSION);
@@ -76,7 +77,7 @@ void receive_file(int fd, Response *res, Request *req) {
                 fprintf(save_file, "%ld\n", i);
             }
 
-            printf("File %s received and saved\n", req->user_input);
+            printf("File %s received and saved\n", filename);
             fclose(save_file);
             fclose(file);
             remove(full_path_save);
@@ -89,34 +90,30 @@ void receive_file(int fd, Response *res, Request *req) {
 }
 
 // Process request and response
-void process(int fd, char *user_input, long starting_block, int type) {
+void process(int fd, char *user_input, long starting_block) {
     Response res;
     Request req;
     clock_t start, end;
     float total_time;
 
-    send_request(fd, &req, user_input, starting_block, type); // Send request to server
-    if (type == FILE_TYPE) {
-        if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
-            printf("Received response from server\n");
-            if (res.status == 200) {
-                printf("%s\n", res.message);
-                start = clock();
-                receive_file(fd, &res, &req);
-                end = clock();
-                total_time = (end - start) * 1e-6;
+    send_request(fd, &req, user_input, starting_block); // Send request to server
+    if (get_response(fd, &res, &res.status, &res.block_number, res.message, &res.file_size)) {
+        printf("Received response from server\n");
+        if (res.status == 200) {
+            printf("%s\n", res.message);
+            start = clock();
+            receive_file(fd, &res, &req);
+            end = clock();
+            total_time = (end - start) * 1e-6;
 
-                printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
-                       (res.file_size / total_time) / 1024);
-            } else {
-                printf("%s\n", res.message);
-            }
+            printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
+                   (res.file_size / total_time) / 1024);
         } else {
-            fprintf(stderr, "Error receiving response from server\n");
-            exit(0);
+            printf("%s\n", res.message);
         }
     } else {
-        printf("Command response : %s\n", res.message);
+        fprintf(stderr, "Error receiving response from server\n");
+        exit(0);
     }
 }
 
@@ -127,6 +124,7 @@ void backup_part_files(int fd) {
     char filename[MAX_NAME_LEN];
     char full_filename[MAX_NAME_LEN];
     long last_block;
+    char user_input[MAX_NAME_LEN];
 
     printf("Checking for incomplete files\n");
 
@@ -139,13 +137,15 @@ void backup_part_files(int fd) {
 
                 strcat(filename, dir->d_name);
 
-
                 last_block = get_last_received_block_number(full_filename);
                 printf("Found incomplete file %s with %ld blocks\n", filename, last_block);
                 if (last_block != -1) {
                     filename[strlen(filename) - strlen(EXTENSION)] = '\0';
                     printf("Resuming download of : %s\n", filename);
-                    process(fd, filename, last_block + 1, FILE_TYPE);
+
+                    strcpy(user_input, "get ");
+                    strcat(user_input, filename);
+                    process(fd, user_input, last_block + 1);
                 }
             }
         }
@@ -200,12 +200,7 @@ int main(int argc, char **argv) {
             break;
         }
 
-        if (user_input[0] == '!') { // Command : tried with readcmd.h but it didn't work
-            memmove(user_input, user_input + 1, strlen(user_input)); // Remove '!'
-            process(clientfd, user_input, 0, COMMAND_TYPE);
-        } else { // File
-            process(clientfd, user_input, 0, FILE_TYPE);
-        }
+        process(clientfd, user_input, 0);
 
         printf("\nftp > ");
     }
