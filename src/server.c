@@ -5,7 +5,7 @@
 #include "csapp.h"
 #include "protocol.h"
 
-#define NB_PROC 1
+#define NB_PROC 10
 #define WORKING_DIRECTORY "/files/"
 
 char server_root[MAX_NAME_LEN];
