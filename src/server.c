@@ -5,7 +5,7 @@
 #include "csapp.h"
 #include "protocol.h"
 
-#define NB_PROC 10
+#define NB_PROC 5
 #define FILE_DIRECTORY "files/"
 
 pid_t pids[NB_PROC];
@@ -24,12 +24,9 @@ void send_file(int connfd, char *filename, long starting_block) {
     struct stat st;
     long block_number;
     long file_size;
-    char full_path[MAX_NAME_LEN];
 
-    strcpy(full_path, FILE_DIRECTORY);
-    strcat(full_path, filename);
 
-    file = fopen(full_path, "r");
+    file = fopen(filename, "r");
     if (file == NULL) {
         fprintf(stderr, "Error opening file %s\n", filename);
         send_response(connfd, &res, 404, "File not found", 0, 0);
@@ -72,16 +69,40 @@ void send_file(int connfd, char *filename, long starting_block) {
 void handle_request(int fd) {
     Request req;
     Response res;
+
+    chdir(FILE_DIRECTORY); // Change directory to the file directory
+
     while (get_request(fd, &req, req.user_input, &req.starting_block)) {
         if (strncmp(req.user_input, "get ", 4) == 0) {
-            char* filename = req.user_input + 4;
+            char *filename = req.user_input + 4;
             printf("Received request for %s starting at block %ld\n", req.user_input, req.starting_block);
             send_file(fd, filename, req.starting_block);
+        } else if (strncmp(req.user_input, "cd", 2) == 0) { // Change directory
+            // Can't change directory with execl so we use chdir
+            char *dir = req.user_input + 3;
+            if (chdir(dir) == 0) {
+                send_response(fd, &res, 200, "Directory changed", 0, 0);
+            } else {
+                send_response(fd, &res, 404, "Directory not found", 0, 0);
+            }
+        } else if (strncmp(req.user_input, "ls", 2) == 0 || strncmp(req.user_input, "pwd", 3) == 0) {
+            printf("Executing command : %s\n", req.user_input);
+            char command_output[MAX_MESSAGE_LEN] = "";
+            FILE *fp = popen(req.user_input, "r"); // create a pipe + fork + exec in shell, returns the output
+            if (fp != NULL) {
+                char line[MAX_NAME_LEN];
+                while (fgets(line, sizeof(line), fp) != NULL) { // Read all lines from the command output
+                    strcat(command_output, line);
+                }
+                pclose(fp);
+            } else {
+                strcpy(command_output, "Error executing command");
+            }
+            send_response(fd, &res, 200, command_output, 0, 0);
         } else {
             printf("Command not yet implemented\n");
-            send_response(fd, &res, 200, "Command not yet implemented", 0, 0);
+            send_response(fd, &res, 404, "Command not yet implemented", 0, 0);
         }
-
     }
 }
 
