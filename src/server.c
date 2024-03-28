@@ -78,8 +78,8 @@ void handle_request(int fd) {
             printf("Received request for %s starting at block %ld\n", req.user_input, req.starting_block);
             send_file(fd, filename, req.starting_block);
         } else {
-            printf("Command not found\n");
-            send_response(fd, &res, 404, "Command not found", 0, 0);
+            printf("Command not yet implemented\n");
+            send_response(fd, &res, 200, "Command not yet implemented", 0, 0);
         }
 
     }

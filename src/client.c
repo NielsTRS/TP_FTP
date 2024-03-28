@@ -101,13 +101,15 @@ void process(int fd, char *user_input, long starting_block) {
         printf("Received response from server\n");
         if (res.status == 200) {
             printf("%s\n", res.message);
-            start = clock();
-            receive_file(fd, &res, &req);
-            end = clock();
-            total_time = (end - start) * 1e-6;
+            if(res.file_size != 0) {
+                start = clock();
+                receive_file(fd, &res, &req);
+                end = clock();
+                total_time = (end - start) * 1e-6;
 
-            printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
-                   (res.file_size / total_time) / 1024);
+                printf("%zd bytes received in %f seconds : (%f Kbytes / s) \n", res.file_size, total_time,
+                       (res.file_size / total_time) / 1024);
+            }
         } else {
             printf("%s\n", res.message);
         }
