@@ -6,7 +6,7 @@
 #include "protocol.h"
 
 #define NB_PROC 10
-#define WORKING_DIRECTORY "/files/"
+#define WORKING_DIRECTORY "/files"
 
 char server_root[MAX_NAME_LEN];
 pid_t pids[NB_PROC];
@@ -77,12 +77,20 @@ void handle_request(int fd) {
             printf("Received request for %s starting at block %ld\n", req.user_input, req.starting_block);
             send_file(fd, filename, req.starting_block);
         } else if (strncmp(req.user_input, "cd", 2) == 0) { // Change directory
-            // Can't change directory with execl so we use chdir
             char *dir = req.user_input + 3;
-            if (chdir(dir) == 0) {
-                send_response(fd, &res, 200, "Directory changed", 0, 0);
+            char real_path[MAX_NAME_LEN];
+
+            realpath(dir, real_path);
+            printf("Real path : %s\n", real_path);
+            printf("Server root : %s\n", server_root);
+            if (strncmp(real_path, server_root, strlen(server_root)) == 0) {
+                if (chdir(dir) == 0) {
+                    send_response(fd, &res, 200, "Directory changed", 0, 0);
+                } else {
+                    send_response(fd, &res, 404, "Directory not found", 0, 0);
+                }
             } else {
-                send_response(fd, &res, 404, "Directory not found", 0, 0);
+                send_response(fd, &res, 403, "Forbidden access", 0, 0);
             }
         } else if (strncmp(req.user_input, "ls", 2) == 0 || strncmp(req.user_input, "pwd", 3) == 0) {
             printf("Executing command : %s\n", req.user_input);
