@@ -5,9 +5,10 @@
 #include "csapp.h"
 #include "protocol.h"
 
-#define NB_PROC 5
-#define FILE_DIRECTORY "files/"
+#define NB_PROC 1
+#define WORKING_DIRECTORY "/files/"
 
+char server_root[MAX_NAME_LEN];
 pid_t pids[NB_PROC];
 
 void sigint_handler(int sig) {
@@ -70,8 +71,6 @@ void handle_request(int fd) {
     Request req;
     Response res;
 
-    chdir(FILE_DIRECTORY); // Change directory to the file directory
-
     while (get_request(fd, &req, req.user_input, &req.starting_block)) {
         if (strncmp(req.user_input, "get ", 4) == 0) {
             char *filename = req.user_input + 4;
@@ -117,6 +116,9 @@ int main(int argc, char **argv) {
     struct stat st;
     int port;
 
+    getcwd(server_root, MAX_NAME_LEN);
+    strcat(server_root, WORKING_DIRECTORY);
+
     Signal(SIGINT, sigint_handler);
 
     if (argc != 2) {
@@ -127,8 +129,8 @@ int main(int argc, char **argv) {
     port = atoi(argv[1]);
 
     // make directory if it doesn't exist
-    if (stat(FILE_DIRECTORY, &st) == -1) {
-        mkdir(FILE_DIRECTORY, 0700);
+    if (stat(server_root, &st) == -1) {
+        mkdir(server_root, 0700);
     }
 
     listenfd = Open_listenfd(port);
@@ -138,6 +140,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < NB_PROC; i++) {
         if ((pids[i] = Fork()) == 0) { // Child process
             while (1) {
+                chdir(server_root); // set the working directory to server root
+
                 connfd = Accept(listenfd, (SA *) &clientaddr, &clientlen);
 
                 Getnameinfo((SA *) &clientaddr, clientlen,
