@@ -81,8 +81,6 @@ void handle_request(int fd) {
             char real_path[MAX_NAME_LEN];
 
             realpath(dir, real_path);
-            printf("Real path : %s\n", real_path);
-            printf("Server root : %s\n", server_root);
             if (strncmp(real_path, server_root, strlen(server_root)) == 0) {
                 if (chdir(dir) == 0) {
                     send_response(fd, &res, 200, "Directory changed", 0, 0);
