@@ -125,6 +125,7 @@ void backup_part_files(int fd) {
     DIR *d;
     struct dirent *dir;
     char filename[MAX_NAME_LEN];
+    char full_filename[MAX_NAME_LEN];
     long last_block;
 
     printf("Checking for incomplete files\n");
@@ -133,10 +134,13 @@ void backup_part_files(int fd) {
     if (d) {
         while ((dir = readdir(d)) != NULL) {
             if (strstr(dir->d_name, EXTENSION) != NULL) {
-                strcpy(filename, FILE_DIRECTORY);
+                strcpy(full_filename, FILE_DIRECTORY);
+                strcat(full_filename, dir->d_name);
+
                 strcat(filename, dir->d_name);
 
-                last_block = get_last_received_block_number(filename);
+
+                last_block = get_last_received_block_number(full_filename);
                 printf("Found incomplete file %s with %ld blocks\n", filename, last_block);
                 if (last_block != -1) {
                     filename[strlen(filename) - strlen(EXTENSION)] = '\0';
@@ -196,8 +200,8 @@ int main(int argc, char **argv) {
             break;
         }
 
-        if (user_input[0] == '!') { // Command
-            memmove(user_input, user_input + 1, strlen(user_input));
+        if (user_input[0] == '!') { // Command : tried with readcmd.h but it didn't work
+            memmove(user_input, user_input + 1, strlen(user_input)); // Remove '!'
             process(clientfd, user_input, 0, COMMAND_TYPE);
         } else { // File
             process(clientfd, user_input, 0, FILE_TYPE);
