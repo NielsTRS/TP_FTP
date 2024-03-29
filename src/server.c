@@ -75,7 +75,7 @@ void handle_request(int fd) {
     while (get_request(fd, &req, req.user_input, &req.starting_block)) {
         if (strncmp(req.user_input, "get ", 4) == 0) {
             char *filename = req.user_input + 4;
-            filename = basename(filename);
+            filename = basename(filename); // make sure user can't access other directories
             printf("Received request for %s starting at block %ld\n", req.user_input, req.starting_block);
             send_file(fd, filename, req.starting_block);
         } else if (strncmp(req.user_input, "cd", 2) == 0) { // Change directory
