@@ -1,4 +1,3 @@
-#include <libgen.h>
 #include "protocol.h"
 
 void send_request(int fd, Request *req, char *user_input, long starting_block) {
