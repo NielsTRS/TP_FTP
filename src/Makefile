@@ -5,7 +5,6 @@
 
 .PRECIOUS: %.o
 
-
 # Compiler and linker options
 CC = gcc
 CFLAGS = -Wall -Werror -g
@@ -48,4 +47,4 @@ config:
 	touch $(SERVER_DIR)/config.txt
 # Clean up
 clean:
-	rm -rf $(CLIENT_DIR) $(SERVER_DIR) $(OBJS)
+	rm -rf $(CLIENT_DIR) $(SERVER_DIR) $(OBJS) *.o
