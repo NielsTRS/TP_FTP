@@ -3,9 +3,12 @@
 # Disable implicit rules
 .SUFFIXES:
 
+.PRECIOUS: %.o
+
+
 # Compiler and linker options
 CC = gcc
-CFLAGS = -Wall -Werror
+CFLAGS = -Wall -Werror -g
 LDFLAGS =
 LIBS += -lpthread
 
